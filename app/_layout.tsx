@@ -23,12 +23,21 @@ import SearchBar from "~/components/Search/Bar";
 import { BottomSheetProvider } from "~/lib/BottomSheetProvider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-import { useCallback, useRef, useMemo } from "react";
+import { useCallback, useRef, useMemo, useEffect } from "react";
 import NowPlaying from "~/components/NowPlaying";
 import DetailsBar from "~/components/Podcasts/DetailsBar";
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_700Bold,
+} from "@expo-google-fonts/poppins";
+import { colorScheme } from "nativewind";
+import { tryCatch } from "~/utils/tryCatch";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "~/utils/stores/useAuth";
 
-let handleClosePress
-let handleSnapPress
+let handleClosePress;
+let handleSnapPress;
 
 const LIGHT_THEME: Theme = {
   ...DefaultTheme,
@@ -50,11 +59,18 @@ const usePlatformSpecificSetup = Platform.select({
   default: noop,
 });
 
-
-
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_700Bold,
+  });
+
+  // Optionally return null or a loading screen until fonts finish loading
+
   usePlatformSpecificSetup();
   const { isDarkColorScheme } = useColorScheme();
+
+  const { setAuthToken, authToken, setTokenError } = useAuth();
 
   const sheetRef = useRef<BottomSheet>(null);
 
@@ -62,16 +78,46 @@ export default function RootLayout() {
   const snapPoints = useMemo(() => ["1%", "100%"], []);
 
   // callbacks
-  const handleSheetChange = useCallback((index) => {
+  const handleSheetChange = useCallback((index: number) => {
     console.log("handleSheetChange", index);
   }, []);
-   handleSnapPress = useCallback((index) => {
+  handleSnapPress = useCallback((index: number) => {
     sheetRef.current?.snapToIndex(index);
   }, []);
-   handleClosePress = useCallback(() => {
+  handleClosePress = useCallback(() => {
     sheetRef.current?.close();
   }, []);
 
+  const getToken = async (): Promise<any> => {
+    // await AsyncStorage.removeItem("authToken");
+    const { data: token, error: tokenError } = await tryCatch(
+      AsyncStorage.getItem("authToken"),
+    );
+    if (tokenError) {
+      throw tokenError;
+    }
+    if (!token) {
+      throw new Error("empty or invalid token");
+    }
+    return token;
+  };
+
+  // console.log("TOKEN", authToken);
+
+  useEffect(() => {
+    colorScheme.set("dark");
+    getToken()
+      .then((token) => {
+        setAuthToken(token);
+      })
+      .catch((error) => {
+        setTokenError(true);
+      });
+  }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -88,13 +134,15 @@ export default function RootLayout() {
               header: ({ navigation, route, options }) => <PodcastsBar />,
             }}
           />
+          <Stack.Screen name="signup" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen
             name="search"
             options={{
               header: ({ navigation, route, options }) => <SearchBar />,
             }}
           />
-           <Stack.Screen
+          <Stack.Screen
             name="podcast/[id]"
             options={{
               header: ({ navigation, route, options }) => <DetailsBar />,
@@ -104,18 +152,23 @@ export default function RootLayout() {
         <PortalHost />
       </ThemeProvider>
       <BottomSheet
-      activeOffsetY={[-1, 1]} 
-       failOffsetX={[-5, 5]}   
-      enableContentPanningGesture={ true }
-      detached={ true }
-      overDragResistanceFactor={ 0.5 }
+        activeOffsetY={[-1, 1]}
+        failOffsetX={[-5, 5]}
+        enableContentPanningGesture={true}
+        detached={true}
+        overDragResistanceFactor={0.5}
         ref={sheetRef}
-        backgroundStyle={ { backgroundColor: isDarkColorScheme? '#000' : '#fff' }  }
+        backgroundStyle={{
+          backgroundColor: isDarkColorScheme ? "#000" : "#fff",
+        }}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
         onChange={handleSheetChange}
       >
-        <BottomSheetView className="dark:bg-[#000]" style={styles.contentContainer}>
+        <BottomSheetView
+          className="dark:bg-[#000]"
+          style={styles.contentContainer}
+        >
           <NowPlaying />
           {/* <Text>Awesome 🔥</Text> */}
         </BottomSheetView>
@@ -144,12 +197,12 @@ function useSetAndroidNavigationBar() {
 
 const styles = StyleSheet.create({
   contentContainer: {
-    backgroundColor: '#000',
+    backgroundColor: "#000",
     flex: 1,
-    overflow: 'hidden'
+    overflow: "hidden",
   },
 });
 
 function noop() {}
 
-export { handleClosePress, handleSnapPress }
+export { handleClosePress, handleSnapPress };

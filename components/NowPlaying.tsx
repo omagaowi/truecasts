@@ -30,6 +30,7 @@ const NowPlaying = () => {
         className="w-[85%] justify-center h-full"
         onLayout={(e) => {
           const { width, height } = e.nativeEvent.layout;
+          // console.log(width, height)
           setWidth(width);
         }}
       >

@@ -5,7 +5,9 @@ import { useColorScheme } from "~/lib/useColorScheme";
 import { handleSnapPress, handleClosePress } from "~/app/_layout";
 
 const PlayingBar = () => {
-    const { width } = Dimensions.get('window')
+    const { width, height } = Dimensions.get('window')
+
+    console.log(width, height)
     // const { openSheet } = useBottomSheet()
       const theme = useColorScheme()
         console.log(theme)

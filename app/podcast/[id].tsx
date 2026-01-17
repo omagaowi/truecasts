@@ -6,13 +6,19 @@ import MyPodcasts from "~/components/Podcasts/Screen";
 import Search from "~/components/Search/Screen";
 import { useState } from "react";
 import PodDetails from "~/components/Podcasts/DetailsScreen";
+import { useAuth } from "~/utils/stores/useAuth";
+import { Redirect } from "expo-router";
 
 export default function PodcastDetails() {
- 
+  const { authToken, tokenError } = useAuth();
+
+  if (tokenError && !authToken) {
+    return <Redirect href="/signup" />;
+  }
 
   return (
     <View className="flex-1 justify-center relative overflow-x-hidden overflow-y-scroll items-center bg-secondary/30">
-        <PodDetails />
+      <PodDetails />
       <PlayingBar />
       <BottomBar />
     </View>
